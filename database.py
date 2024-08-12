@@ -1,36 +1,42 @@
 import mysql.connector
-from config import db_host, db_user, db_password, db_name
+from mysql.connector import Error
+from config import settings
+
 
 def connect_to_database():
     try:
         connection = mysql.connector.connect(
-            host=db_host,
-            user=db_user,
-            password=db_password,
-            database=db_name
-            )
+            host=settings.DB_HOST,
+            user=settings.DB_USER,
+            password=settings.DB_PASSWORD,
+            database=settings.DB_NAME
+        )
         return connection
-    except mysql.connector.Error as error:
+    except Error as error:
         print("Error connecting to database:", error)
-        return error
+        raise error
+
 
 def execute_sql_query(sql_query, query_parameters=None):
-    connection = connect_to_database()
-    result = None
+    connection = None
     try:
-        cursor = connection.cursor(dictionary=True)  # Set dictionary=True
+        connection = connect_to_database()
+        cursor = connection.cursor(dictionary=True)  # Using dictionary cursor
         cursor.execute(sql_query, query_parameters)
-        if sql_query.upper().startswith("SELECT"):
-            # executed for GET requests
-            result = cursor.fetchall()
+
+        if sql_query.strip().upper().startswith("SELECT"):
+            result = cursor.fetchall()  # Fetching results for SELECT queries
         else:
-            # executed for POST requests
-            connection.commit()
+            connection.commit()  # Committing changes for INSERT/UPDATE/DELETE
             result = True
-    except mysql.connector.Error as exception:
+
+        cursor.close()
+        return result
+
+    except Error as exception:
         print("Error executing SQL query:", exception)
-        result = exception
+        raise exception  # Re-raising the exception for the caller to handle
+
     finally:
-        if connection.is_connected():
+        if connection and connection.is_connected():
             connection.close()
-    return result
