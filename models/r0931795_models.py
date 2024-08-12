@@ -15,6 +15,10 @@ class FarmingPractice(BaseModel):
 class CommunityEvent(BaseModel):
     id: int
     event_name: str
-    event_date: str  # Date can be handled as a string or datetime
+    event_date: str
     description: str
 
+class Contact(BaseModel):
+    name: str
+    email: str
+    message: str

@@ -1,11 +1,12 @@
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
+from models.r0931795_models import Contact
 from typing import List, Optional
 from database import execute_sql_query
 from queries.r0931795_queries import (
     GET_ALL_PRODUCE_QUERY,
     GET_PRODUCE_BY_ID_QUERY,
-    INSERT_PRODUCE_QUERY,
+    INSERT_CONTACT_QUERY,
     GET_ALL_FARMING_PRACTICES_QUERY,
     GET_ALL_COMMUNITY_EVENTS_QUERY
 )
@@ -35,14 +36,6 @@ async def get_produce_by_id(produce_id: int):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-# Endpoint to create new produce
-@router.post("/produce/", response_model=Produce)
-async def create_produce(produce: Produce):
-    try:
-        execute_sql_query(INSERT_PRODUCE_QUERY, (produce.name, produce.description, produce.price, produce.season))
-        return {"message": "Produce created successfully"}
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
 
 # Endpoint to get all farming practices
 @router.get("/farming-practices/", response_model=List[FarmingPractice])
@@ -58,10 +51,21 @@ async def get_all_farming_practices():
 # Endpoint to get all community events
 @router.get("/community-events/", response_model=List[CommunityEvent])
 async def get_all_community_events():
+    # Fetch data from the database
+    events = execute_sql_query(GET_ALL_COMMUNITY_EVENTS_QUERY)
+
+    # Convert event_date to string
+    for event in events:
+        event['event_date'] = event['event_date'].strftime('%Y-%m-%d')
+
+    return events
+
+# Endpoint to submit contact form
+@router.post("/contact/")
+async def create_contact(contact: Contact):
     try:
-        events = execute_sql_query(GET_ALL_COMMUNITY_EVENTS_QUERY)
-        if not events:
-            raise HTTPException(status_code=404, detail="No community events found")
-        return events
+        execute_sql_query(INSERT_CONTACT_QUERY, (contact.name, contact.email, contact.message))
+        return {"message": "Contact form submitted successfully"}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
